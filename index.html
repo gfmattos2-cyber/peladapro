@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pelada PRO - Organizador e Sorteador de Times Inteligente</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Estilo Principal -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar / Navigation -->
+        <header class="app-header">
+            <div class="logo">
+                <i class="fa-solid fa-circle-nodes logo-icon"></i>
+                <h1>PELADA<span>PRO</span></h1>
+            </div>
+            <nav class="app-nav">
+                <button class="nav-btn active" data-tab="jogadores">
+                    <i class="fa-solid fa-users"></i> <span>Jogadores</span>
+                </button>
+                <button class="nav-btn" data-tab="sorteio">
+                    <i class="fa-solid fa-arrows-spin"></i> <span>Sorteador</span>
+                </button>
+                <button class="nav-btn" data-tab="financeiro">
+                    <i class="fa-solid fa-wallet"></i> <span>Financeiro</span>
+                </button>
+                <button class="nav-btn" data-tab="estatisticas">
+                    <i class="fa-solid fa-chart-simple"></i> <span>Estatísticas</span>
+                </button>
+            </nav>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="app-main">
+            
+            <!-- TAB: JOGADORES -->
+            <section id="tab-jogadores" class="tab-content active">
+                <div class="view-header">
+                    <h2>Gerenciamento de Jogadores</h2>
+                    <p>Cadastre os atletas da sua pelada, defina suas notas e confirme quem vai jogar hoje.</p>
+                </div>
+
+                <div class="grid-layout">
+                    <!-- Form e Resumo -->
+                    <div class="sidebar-column">
+                        <!-- Formulário de Adicionar Jogador -->
+                        <div class="card glass">
+                            <h3><i class="fa-solid fa-user-plus"></i> Novo Jogador</h3>
+                            <form id="player-form" class="player-form">
+                                <div class="form-group">
+                                    <label for="player-name">Nome do Atleta</label>
+                                    <input type="text" id="player-name" required placeholder="Ex: Carlinhos Neymar" autocomplete="off">
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="player-position">Posição</label>
+                                        <select id="player-position" required>
+                                            <option value="Goleiro">Goleiro</option>
+                                            <option value="Zagueiro">Zagueiro/Defesa</option>
+                                            <option value="Meio-Campo" selected>Meio-Campo</option>
+                                            <option value="Atacante">Atacante</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="player-type">Tipo</label>
+                                        <select id="player-type" required>
+                                            <option value="Mensalista">Mensalista</option>
+                                            <option value="Convidado">Convidado</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="player-rating">Nível técnico (Nota de 0 a 100)</label>
+                                    <div style="display: flex; align-items: center; gap: 1rem;">
+                                        <input type="range" id="player-rating" min="0" max="100" value="60" style="flex: 1; accent-color: var(--accent-color);">
+                                        <span id="player-rating-val" style="font-weight: 800; font-size: 1.2rem; color: var(--text-primary); width: 2.5rem; text-align: right;">60</span>
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary btn-block">
+                                    <i class="fa-solid fa-check"></i> Adicionar Jogador
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Resumo de Presença -->
+                        <div class="card glass summary-card">
+                            <h3><i class="fa-solid fa-clipboard-list"></i> Resumo da Rodada</h3>
+                            <div class="summary-stats">
+                                <div class="stat-box">
+                                    <span class="stat-val" id="stat-total">0</span>
+                                    <span class="stat-lbl">Cadastrados</span>
+                                </div>
+                                <div class="stat-box confirmed">
+                                    <span class="stat-val" id="stat-confirmed">0</span>
+                                    <span class="stat-lbl">Confirmados</span>
+                                </div>
+                                <div class="stat-box goleiros">
+                                    <span class="stat-val" id="stat-goleiros">0</span>
+                                    <span class="stat-lbl">Goleiros</span>
+                                </div>
+                            </div>
+                            <div class="action-row">
+                                <button id="btn-confirm-all" class="btn btn-outline btn-sm">
+                                    <i class="fa-solid fa-square-check"></i> Confirmar Todos
+                                </button>
+                                <button id="btn-unconfirm-all" class="btn btn-outline btn-sm">
+                                    <i class="fa-solid fa-square"></i> Limpar Lista
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lista de Jogadores -->
+                    <div class="main-column">
+                        <div class="card glass list-card">
+                            <div class="list-header">
+                                <div class="search-box">
+                                    <i class="fa-solid fa-magnifying-glass"></i>
+                                    <input type="text" id="search-player" placeholder="Buscar jogador...">
+                                </div>
+                                <div class="filters">
+                                    <select id="filter-position">
+                                        <option value="todos">Todas as Posições</option>
+                                        <option value="Goleiro">Goleiros</option>
+                                        <option value="Zagueiro">Zagueiros</option>
+                                        <option value="Meio-Campo">Meias</option>
+                                        <option value="Atacante">Atacantes</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="table-container">
+                                <table class="player-table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 80px; text-align: center;">Presença</th>
+                                            <th>Nome</th>
+                                            <th style="width: 140px;">Posição</th>
+                                            <th style="width: 110px;">Tipo</th>
+                                            <th style="width: 150px;">Nota (1 a 5)</th>
+                                            <th style="width: 100px; text-align: center;">Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="player-table-body">
+                                        <!-- Preenchido dinamicamente via JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB: SORTEADOR -->
+            <section id="tab-sorteio" class="tab-content">
+                <div class="view-header">
+                    <h2>Sorteio de Times Inteligente</h2>
+                    <p>Configure a divisão da sua pelada. O sistema balanceará as equipes de forma igualitária com base no nível técnico e posições.</p>
+                </div>
+
+                <div class="card glass config-card">
+                    <h3><i class="fa-solid fa-sliders"></i> Configurações do Sorteio</h3>
+                    <div class="config-grid">
+                        <!-- Coluna 1: Critérios (Quantidade de Times e Jogadores por Time empilhados) -->
+                        <div class="config-criteria-col" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label for="num-teams">Quantidade de Times</label>
+                                <input type="number" id="num-teams" min="2" max="10" value="3">
+                            </div>
+    
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label for="players-per-team">Jogadores por Time</label>
+                                <input type="number" id="players-per-team" min="3" max="15" value="5">
+                            </div>
+                        </div>
+
+                        <!-- Coluna 2: Botões de Sorteio e Limpeza -->
+                        <div class="form-group flex-end" style="display: flex; gap: 0.75rem; width: 100%; align-self: flex-end; margin-bottom: 0;">
+                            <button id="btn-draw-teams" class="btn btn-success btn-lg flex-1">
+                                <i class="fa-solid fa-arrows-spin"></i> Sortear
+                            </button>
+                            <button id="btn-clear-draw" class="btn btn-outline btn-lg btn-danger-hover flex-1" title="Limpar times sorteados">
+                                <i class="fa-solid fa-trash-can"></i> Limpar
+                            </button>
+                        </div>
+                    </div>
+                    <div class="info-alert" id="draw-info-summary">
+                        <!-- Mostra quantos jogadores estão ativos para o sorteio -->
+                    </div>
+                </div>
+
+                <!-- Resultados do Sorteio -->
+                <div id="draw-results-container" class="draw-results-container d-none">
+                    <div class="results-header">
+                        <h3><i class="fa-solid fa-shield-halved"></i> Times Formados</h3>
+                        <div class="results-actions" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            <button id="btn-confirm-draw" class="btn btn-warning d-none">
+                                <i class="fa-solid fa-floppy-disk"></i> Gravar no Histórico
+                            </button>
+                            <button id="btn-copy-teams" class="btn btn-outline">
+                                <i class="fa-brands fa-whatsapp"></i> Copiar para WhatsApp
+                            </button>
+                            <button id="btn-redraw" class="btn btn-outline">
+                                <i class="fa-solid fa-rotate-right"></i> Sortear Novamente
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="teams-grid" id="teams-output">
+                        <!-- Preenchido dinamicamente via JS -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB: FINANCEIRO -->
+            <section id="tab-financeiro" class="tab-content">
+                <div class="view-header">
+                    <h2>Controle Financeiro</h2>
+                    <p>Gerencie o custo do aluguel da quadra e saiba exatamente quem já pagou a taxa do dia.</p>
+                </div>
+
+                <div class="grid-layout">
+                    <div class="sidebar-column">
+                        <div class="card glass">
+                            <h3><i class="fa-solid fa-coins"></i> Configuração de Custos</h3>
+                            <div class="form-group">
+                                <label for="finance-court-cost">Custo Total da Quadra (R$)</label>
+                                <input type="number" id="finance-court-cost" min="0" value="150" step="5">
+                            </div>
+                            <div class="form-group">
+                                <label for="finance-pix-key">Chave PIX para Cobrança</label>
+                                <input type="text" id="finance-pix-key" placeholder="Celular, CPF, E-mail ou Aleatória">
+                            </div>
+                            <div class="form-group">
+                                <label for="finance-pix-owner">Nome do Titular do PIX</label>
+                                <input type="text" id="finance-pix-owner" placeholder="Ex: João Silva">
+                            </div>
+                            <button id="btn-save-finance-configs" class="btn btn-primary btn-block">
+                                <i class="fa-solid fa-floppy-disk"></i> Salvar Configurações
+                            </button>
+                        </div>
+
+                        <!-- Painel de Indicadores -->
+                        <div class="card glass summary-card">
+                            <h3><i class="fa-solid fa-receipt"></i> Resumo de Caixa</h3>
+                            <div class="finance-stats">
+                                <div class="finance-row">
+                                    <span>Valor por Jogador:</span>
+                                    <strong id="fin-value-per-player">R$ 0,00</strong>
+                                </div>
+                                <div class="finance-row">
+                                    <span>Total Arrecadado:</span>
+                                    <strong class="text-success" id="fin-collected">R$ 0,00</strong>
+                                </div>
+                                <div class="finance-row">
+                                    <span>Total Pendente:</span>
+                                    <strong class="text-warning" id="fin-pending">R$ 0,00</strong>
+                                </div>
+                                <div class="finance-row total-row">
+                                    <span>Balanço Geral:</span>
+                                    <strong id="fin-balance">R$ 0,00</strong>
+                                </div>
+                            </div>
+                            <button id="btn-copy-billing" class="btn btn-outline btn-block mt-3">
+                                <i class="fa-brands fa-whatsapp"></i> Copiar Mensagem de Cobrança
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="main-column">
+                        <div class="card glass list-card">
+                            <h3><i class="fa-solid fa-users-dollar"></i> Lista de Cobrança (Atletas Ativos Hoje)</h3>
+                            <div class="table-container mt-3">
+                                <table class="finance-table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 120px; text-align: center;">Status</th>
+                                            <th>Nome do Jogador</th>
+                                            <th style="width: 130px;">Tipo</th>
+                                            <th style="width: 150px; text-align: right;">Valor Individual</th>
+                                            <th style="width: 100px; text-align: center;">Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="finance-table-body">
+                                        <!-- Preenchido dinamicamente via JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB: ESTATÍSTICAS -->
+            <section id="tab-estatisticas" class="tab-content">
+                <div class="view-header">
+                    <h2>Estatísticas e Súmula do Dia</h2>
+                    <p>Registre os gols, assistências e cartões à medida que os jogos acontecem para premiar o craque da rodada.</p>
+                </div>
+
+                <div class="grid-layout">
+                    <!-- Painel de Líderes -->
+                    <div class="sidebar-column">
+                        <div class="card glass leaderboard-card">
+                            <h3><i class="fa-solid fa-trophy text-warning"></i> Destaques da Pelada</h3>
+                            <div class="podium">
+                                <div class="podium-item mvp">
+                                    <i class="fa-solid fa-crown podium-icon text-warning"></i>
+                                    <span class="podium-name" id="podium-mvp">-</span>
+                                    <span class="podium-lbl">Artilheiro + Garçom</span>
+                                </div>
+                                <div class="podium-item scorer">
+                                    <i class="fa-solid fa-volleyball podium-icon text-info"></i>
+                                    <span class="podium-name" id="podium-scorer">-</span>
+                                    <span class="podium-lbl">Artilheiro</span>
+                                </div>
+                                <div class="podium-item assist">
+                                    <i class="fa-solid fa-handshake-angle podium-icon text-success"></i>
+                                    <span class="podium-name" id="podium-assist">-</span>
+                                    <span class="podium-lbl">Líder em Assistências</span>
+                                </div>
+                            </div>
+                            <button id="btn-reset-stats" class="btn btn-outline btn-danger-hover btn-block mt-3">
+                                <i class="fa-solid fa-trash-can"></i> Zerar Súmula do Dia
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Lançamento de Dados -->
+                    <div class="main-column">
+                        <div class="card glass list-card">
+                            <h3><i class="fa-solid fa-pen-to-square"></i> Registro de Eventos da Partida</h3>
+                            <div class="table-container mt-3">
+                                <table class="stats-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Nome do Jogador</th>
+                                            <th style="width: 140px; text-align: center;">Gols</th>
+                                            <th style="width: 140px; text-align: center;">Assistências</th>
+                                            <th style="width: 100px; text-align: center;">Cartões Y/R</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="stats-table-body">
+                                        <!-- Preenchido dinamicamente via JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Seção de Histórico de Presença e Banco (Sorteio Justo) -->
+                <div class="card glass list-card mt-4">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                        <h3 style="margin: 0;"><i class="fa-solid fa-clock-rotate-left"></i> Histórico de Sorteios e Rotatividade no Banco</h3>
+                        <button id="btn-reset-history" class="btn btn-outline btn-sm btn-danger-hover">
+                            <i class="fa-solid fa-trash-can"></i> Zerar Histórico de Sorteios
+                        </button>
+                    </div>
+                    <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.5rem; line-height: 1.4;">
+                        Acompanhe a participação dos atletas e a rotatividade de idas ao <strong>Time C (Banco/Reserva)</strong>. O sistema usa esses dados para priorizar quem tem maior débito de banco e evitar repetição frequente de duplas nos times.
+                    </p>
+                    <div class="table-container mt-3">
+                        <table class="stats-table">
+                            <thead>
+                                <tr>
+                                    <th>Jogador</th>
+                                    <th style="width: 120px; text-align: center;">Total Sorteios</th>
+                                    <th style="width: 120px; text-align: center;">No Time C (Banco)</th>
+                                    <th style="width: 120px; text-align: center;">Frequência Banco</th>
+                                    <th style="width: 120px; text-align: center;">Último Time</th>
+                                    <th>Parceiros Mais Frequentes (Top 3)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-table-body">
+                                <!-- Preenchido dinamicamente via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+            
+        </main>
+    </div>
+
+    <!-- MODAL DE EDIÇÃO DE JOGADOR -->
+    <div id="edit-modal" class="modal-overlay d-none">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-user-pen"></i> Editar Jogador</h3>
+                <button id="btn-close-modal" class="btn-close">&times;</button>
+            </div>
+            <form id="edit-player-form">
+                <input type="hidden" id="edit-player-id">
+                
+                <div class="form-group">
+                    <label for="edit-player-name">Nome do Atleta</label>
+                    <input type="text" id="edit-player-name" required placeholder="Nome do jogador" autocomplete="off">
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit-player-position">Posição</label>
+                        <select id="edit-player-position" required>
+                            <option value="Goleiro">Goleiro</option>
+                            <option value="Zagueiro">Zagueiro/Defesa</option>
+                            <option value="Meio-Campo">Meio-Campo</option>
+                            <option value="Atacante">Atacante</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-player-type">Tipo</label>
+                        <select id="edit-player-type" required>
+                            <option value="Mensalista">Mensalista</option>
+                            <option value="Convidado">Convidado</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-player-rating">Nível técnico (Nota de 0 a 100)</label>
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <input type="range" id="edit-player-rating" min="0" max="100" value="60" style="flex: 1; accent-color: var(--accent-color);">
+                        <span id="edit-player-rating-val" style="font-weight: 800; font-size: 1.2rem; color: var(--text-primary); width: 2.5rem; text-align: right;">60</span>
+                    </div>
+                </div>
+                
+                <div class="action-row mt-3">
+                    <button type="button" id="btn-cancel-edit" class="btn btn-outline flex-1">Cancelar</button>
+                    <button type="submit" class="btn btn-primary flex-1">Salvar Alterações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bibliotecas JS e Lógica do App -->
+    <script src="public/player-cards/v1/cards-manifest.v1.js"></script>
+    <script src="js/balance.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
