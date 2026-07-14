@@ -317,64 +317,85 @@ function drawTeams(players, config, histories = {}, totalDraws = 0) {
         return maxAvg - minAvg;
     }
 
-    while (attempts < 20) {
-        // 1. Clona os jogadores e executa o sorteio normal (que respeita histórico e faz Hill Climbing entre A e B)
+    function satisfiesRating85Rule(teamsList) {
+        // Encontra todos os jogadores com nota >= 85 nos times ativos
+        const starPlayersCount = teamsList.reduce((acc, t) => {
+            return acc + t.players.filter(p => p.rating >= 85).length;
+        }, 0);
+
+        // Se tivermos pelo menos tantos estrelas quanto o número de times, exigimos 1 por time
+        if (starPlayersCount >= teamsList.length) {
+            return teamsList.every(t => t.players.some(p => p.rating >= 85));
+        }
+        return true;
+    }
+
+    while (attempts < 50) {
         const playersClone = JSON.parse(JSON.stringify(players));
         const teams = drawTeamsInternal(playersClone, config, histories, totalDraws);
 
         let delta = getTeamsDelta(teams);
 
-        // 2. Se o delta for maior que 5.0, fazemos swaps locais de equilíbrio (apenas entre jogadores de linha)
-        if (delta > 5.0) {
-            let swapAttempts = 0;
-            while (swapAttempts < 1000) {
-                const t1_idx = Math.floor(Math.random() * teams.length);
-                const t2_idx = Math.floor(Math.random() * teams.length);
-                if (t1_idx === t2_idx) {
-                    swapAttempts++;
-                    continue;
-                }
+        // Se a distribuição não está perfeita, aplicamos swaps locais inteligentes
+        let swapAttempts = 0;
+        while (swapAttempts < 2000) {
+            if (delta <= 4.0 && satisfiesRating85Rule(teams)) {
+                break;
+            }
 
-                const t1 = teams[t1_idx];
-                const t2 = teams[t2_idx];
+            const t1_idx = Math.floor(Math.random() * teams.length);
+            const t2_idx = Math.floor(Math.random() * teams.length);
+            if (t1_idx === t2_idx) {
+                swapAttempts++;
+                continue;
+            }
 
-                const line1 = t1.players.filter(p => p.position !== 'Goleiro');
-                const line2 = t2.players.filter(p => p.position !== 'Goleiro');
+            const t1 = teams[t1_idx];
+            const t2 = teams[t2_idx];
 
-                if (line1.length === 0 || line2.length === 0) {
-                    swapAttempts++;
-                    continue;
-                }
+            const line1 = t1.players.filter(p => p.position !== 'Goleiro');
+            const line2 = t2.players.filter(p => p.position !== 'Goleiro');
 
-                const p1 = line1[Math.floor(Math.random() * line1.length)];
-                const p2 = line2[Math.floor(Math.random() * line2.length)];
+            if (line1.length === 0 || line2.length === 0) {
+                swapAttempts++;
+                continue;
+            }
 
-                const p1_idx = t1.players.findIndex(p => p.id === p1.id);
-                const p2_idx = t2.players.findIndex(p => p.id === p2.id);
+            const p1 = line1[Math.floor(Math.random() * line1.length)];
+            const p2 = line2[Math.floor(Math.random() * line2.length)];
 
-                // Swap temporário
+            const p1_idx = t1.players.findIndex(p => p.id === p1.id);
+            const p2_idx = t2.players.findIndex(p => p.id === p2.id);
+
+            // Swap temporário
+            t1.players[p1_idx] = p2;
+            t2.players[p2_idx] = p1;
+
+            const newDelta = getTeamsDelta(teams);
+            const isSatisfiedNow = satisfiesRating85Rule(teams);
+
+            // Calcula pontuações de custo (menor é melhor)
+            const newScore = newDelta + (isSatisfiedNow ? 0 : 1000);
+
+            // Desfaz swap temporário para calcular o score anterior
+            t1.players[p1_idx] = p1;
+            t2.players[p2_idx] = p2;
+
+            const isSatisfiedBefore = satisfiesRating85Rule(teams);
+            const oldScore = delta + (isSatisfiedBefore ? 0 : 1000);
+
+            // Se o swap melhorou a pontuação, refazemos o swap permanentemente
+            if (newScore < oldScore) {
                 t1.players[p1_idx] = p2;
                 t2.players[p2_idx] = p1;
-
-                const newDelta = getTeamsDelta(teams);
-
-                if (newDelta < delta) {
-                    delta = newDelta;
-                    if (delta <= 5.0) {
-                        break;
-                    }
-                } else {
-                    // Desfazer swap se não melhorou o delta
-                    t1.players[p1_idx] = p1;
-                    t2.players[p2_idx] = p2;
-                }
-                swapAttempts++;
+                delta = newDelta;
             }
+
+            swapAttempts++;
         }
 
-        // Se conseguimos atingir a meta (Delta <= 5.0), retornamos este sorteio
-        if (delta <= 5.0) {
-            // Atualiza médias formatadas dos times e retorna
+        // Se conseguimos satisfazer ambas as regras nesta tentativa, finalizamos o sorteio
+        if (delta <= 4.0 && satisfiesRating85Rule(teams)) {
             teams.forEach(t => {
                 if (t.players.length === 0) {
                     t.avgRating = 0;
@@ -386,8 +407,10 @@ function drawTeams(players, config, histories = {}, totalDraws = 0) {
             return teams;
         }
 
-        // Guarda o melhor resultado caso exceda as tentativas
-        if (delta < bestDelta) {
+        // Guarda o melhor resultado caso todas as 50 tentativas falhem
+        const currentBestScore = bestDelta + (bestTeams && satisfiesRating85Rule(bestTeams) ? 0 : 1000);
+        const candidateScore = delta + (satisfiesRating85Rule(teams) ? 0 : 1000);
+        if (candidateScore < currentBestScore) {
             bestDelta = delta;
             bestTeams = teams;
         }
@@ -395,8 +418,7 @@ function drawTeams(players, config, histories = {}, totalDraws = 0) {
         attempts++;
     }
 
-    // Caso exceda todas as tentativas, retorna o melhor sorteio encontrado
-    console.warn(`[Pelada PRO] Delta <= 5.0 não atingido após 20 sorteios. Retornando o mais equilibrado (Delta: ${bestDelta.toFixed(1)}).`);
+    console.warn(`[Pelada PRO] Restrições estritas (Delta <= 4.0 e >=85 por time) não atingidas após 50 tentativas. Retornando o melhor (Delta: ${bestDelta.toFixed(1)}).`);
     
     bestTeams.forEach(t => {
         if (t.players.length === 0) {
